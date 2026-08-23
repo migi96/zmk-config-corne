@@ -1,0 +1,2063 @@
+/*
+ * Corne (crkbd) keymap — ported from a MoErgo Go60 layout (go60.keymap).
+ *
+ * Firmware : ZMK
+ * Base repo: github.com/mctechnology17/zmk-config (custom corne shield, no RGB)
+ * Board    : nice_nano_v2   Shield: corne_left / corne_right  (42-key, 6-column)
+ *
+ * PORTED 1:1 from the Go60 file (verbatim):
+ *   - helper macros, all behaviors, 136 macros, 13 combos
+ *   - base "kuru" (Colemak-DH) layer and "Numbers" layer, reduced 60 -> 42 keys
+ *
+ * CHANGED for the Corne's smaller matrix:
+ *   - Go60 rows R2/R3/R4 map onto the Corne's 3 physical rows. The Go60 number
+ *     row (R1) and inner row (R5: `grave/DEL/BSPC` and `RCTRL/[/]`) were DROPPED.
+ *     Numbers live on the Numbers layer; relocate plain BSPC/DEL to taste.
+ *   - Go60 Cirque trackpads + input_processors were removed (Corne has no pointer).
+ *   - The other 30 layers are present as &trans placeholders so every &mo/&to/&sl
+ *     reference still compiles. Fill them in by copying rows out of go60.keymap.
+ *   - Combos keep the Go60 POS_* names, now remapped to Corne key positions.
+ */
+
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/bt.h>
+#include <dt-bindings/zmk/outputs.h>
+#include <dt-bindings/zmk/rgb.h>
+
+/* ---- urob-style helper macros (from the Go60 file) ---- */
+#pragma once
+
+#define ZMK_HELPER_STRINGIFY(x) #x
+
+#define VARGS_(_10, _9, _8, _7, _6, _5, _4, _3, _2, _1, N, ...) N
+#define VARGS(...) VARGS_(__VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+#define CONCAT_(a, b) a##b
+#define CONCAT(a, b) CONCAT_(a, b)
+
+#define ZMK_BEHAVIOR_CORE_tap_dance  \
+    compatible = "zmk,behavior-tap-dance"; \
+    #binding-cells = <0>
+
+#define ZMK_BEHAVIOR(name, type, ...) \
+    name: name { \
+        ZMK_BEHAVIOR_CORE_ ## type; \
+        __VA_ARGS__ \
+    };
+
+#define ZMK_TAP_DANCE(name, ...) \
+    ZMK_BEHAVIOR(name, tap_dance, __VA_ARGS__)
+
+#define ZMK_TD_LAYER(name, layer) \
+    ZMK_TAP_DANCE(name, \
+        tapping-term-ms = <200>; \
+        bindings = <&mo layer>, <&to layer>; \
+)
+
+/* ---- Corne 42-key positions ----
+ *    0  1  2  3  4  5        6  7  8  9 10 11
+ *   12 13 14 15 16 17       18 19 20 21 22 23
+ *   24 25 26 27 28 29       30 31 32 33 34 35
+ *            36 37 38       39 40 41
+ *
+ * Go60 column names kept (C6 = outer pinky ... C1 = inner index).
+ * Go60 rows R2/R3/R4 -> Corne rows 1/2/3.
+ */
+#define POS_LH_C6R2 0
+#define POS_LH_C5R2 1
+#define POS_LH_C4R2 2
+#define POS_LH_C3R2 3
+#define POS_LH_C2R2 4
+#define POS_LH_C1R2 5
+#define POS_RH_C1R2 6
+#define POS_RH_C2R2 7
+#define POS_RH_C3R2 8
+#define POS_RH_C4R2 9
+#define POS_RH_C5R2 10
+#define POS_RH_C6R2 11
+#define POS_LH_C6R3 12
+#define POS_LH_C5R3 13
+#define POS_LH_C4R3 14
+#define POS_LH_C3R3 15
+#define POS_LH_C2R3 16
+#define POS_LH_C1R3 17
+#define POS_RH_C1R3 18
+#define POS_RH_C2R3 19
+#define POS_RH_C3R3 20
+#define POS_RH_C4R3 21
+#define POS_RH_C5R3 22
+#define POS_RH_C6R3 23
+#define POS_LH_C6R4 24
+#define POS_LH_C5R4 25
+#define POS_LH_C4R4 26
+#define POS_LH_C3R4 27
+#define POS_LH_C2R4 28
+#define POS_LH_C1R4 29
+#define POS_RH_C1R4 30
+#define POS_RH_C2R4 31
+#define POS_RH_C3R4 32
+#define POS_RH_C4R4 33
+#define POS_RH_C5R4 34
+#define POS_RH_C6R4 35
+#define POS_LH_T1 36
+#define POS_LH_T2 37
+#define POS_LH_T3 38
+#define POS_RH_T3 39
+#define POS_RH_T2 40
+#define POS_RH_T1 41
+
+#define LEFT_HAND_KEYS \
+  POS_LH_C6R2 POS_LH_C5R2 POS_LH_C4R2 POS_LH_C3R2 POS_LH_C2R2 POS_LH_C1R2 \
+  POS_LH_C6R3 POS_LH_C5R3 POS_LH_C4R3 POS_LH_C3R3 POS_LH_C2R3 POS_LH_C1R3 \
+  POS_LH_C6R4 POS_LH_C5R4 POS_LH_C4R4 POS_LH_C3R4 POS_LH_C2R4 POS_LH_C1R4
+
+#define RIGHT_HAND_KEYS \
+  POS_RH_C1R2 POS_RH_C2R2 POS_RH_C3R2 POS_RH_C4R2 POS_RH_C5R2 POS_RH_C6R2 \
+  POS_RH_C1R3 POS_RH_C2R3 POS_RH_C3R3 POS_RH_C4R3 POS_RH_C5R3 POS_RH_C6R3 \
+  POS_RH_C1R4 POS_RH_C2R4 POS_RH_C3R4 POS_RH_C4R4 POS_RH_C5R4 POS_RH_C6R4
+
+#define THUMB_KEYS \
+  POS_LH_T1 POS_LH_T2 POS_LH_T3 \
+  POS_RH_T1 POS_RH_T2 POS_RH_T3
+
+/* ---- Layer indices (order MUST match the keymap node below) ---- */
+#define LAYER_kuru 0
+#define LAYER_Numbers 1
+#define LAYER_All_layers 2
+#define LAYER_Vim 3
+#define LAYER_Window_Manager 4
+#define LAYER_Raycast 5
+#define LAYER_Arrow_Movements 6
+#define LAYER_alt_movement 7
+#define LAYER_gui_movements 8
+#define LAYER_Shift_alt_movements 9
+#define LAYER_coding 10
+#define LAYER_mouesless 11
+#define LAYER_Vim_cursor 12
+#define LAYER_programming 13
+#define LAYER_passwords 14
+#define LAYER_Surfingkey 15
+#define LAYER_Vim_brackets 16
+#define LAYER_Vim_squarely_brackets 17
+#define LAYER_Symbols 18
+#define LAYER_simbols_layer 19
+#define LAYER_neovim 20
+#define LAYER_vimuim 21
+#define LAYER_splits_focus 22
+#define LAYER_vim_words 23
+#define LAYER_vim_sentences 24
+#define LAYER_Tmux_Ghostty 25
+#define LAYER_Vim_changes 26
+#define LAYER_Open_code 27
+#define LAYER_kitty_workspaces_sessions 28
+#define LAYER_Raycast_Apps 29
+#define LAYER_Workspaces_layouts 30
+#define LAYER_workspaces_focus 31
+
+#ifndef LAYER_Lower
+#define LAYER_Lower 0
+#endif
+
+/* System behavior and macros */
+/ {
+    behaviors {
+        ZMK_TD_LAYER(lower, LAYER_Lower)
+    };
+};
+
+/ {
+    macros {
+        rgb_ug_status_macro: rgb_ug_status_macro {
+            label = "RGB_UG_STATUS";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&none>;
+        };
+    };
+};
+
+/ {
+#ifdef BT_DISC_CMD
+    behaviors {
+        bt_0: bt_0 {
+            compatible = "zmk,behavior-tap-dance";
+            label = "BT_0";
+            #binding-cells = <0>;
+            tapping-term-ms = <200>;
+            bindings = <&bt_select_0>, <&bt BT_DISC 0>;
+        };
+        bt_1: bt_1 {
+            compatible = "zmk,behavior-tap-dance";
+            label = "BT_1";
+            #binding-cells = <0>;
+            tapping-term-ms = <200>;
+            bindings = <&bt_select_1>, <&bt BT_DISC 1>;
+        };
+        bt_2: bt_2 {
+            compatible = "zmk,behavior-tap-dance";
+            label = "BT_2";
+            #binding-cells = <0>;
+            tapping-term-ms = <200>;
+            bindings = <&bt_select_2>, <&bt BT_DISC 2>;
+        };
+        bt_3: bt_3 {
+            compatible = "zmk,behavior-tap-dance";
+            label = "BT_3";
+            #binding-cells = <0>;
+            tapping-term-ms = <200>;
+            bindings = <&bt_select_3>, <&bt BT_DISC 3>;
+        };
+    };
+    macros {
+        bt_select_0: bt_select_0 {
+            label = "BT_SELECT_0";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&out OUT_BLE>,
+                  <&bt BT_SEL 0>;
+        };
+        bt_select_1: bt_select_1 {
+            label = "BT_SELECT_1";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&out OUT_BLE>,
+                  <&bt BT_SEL 1>;
+        };
+        bt_select_2: bt_select_2 {
+            label = "BT_SELECT_2";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&out OUT_BLE>,
+                  <&bt BT_SEL 2>;
+        };
+        bt_select_3: bt_select_3 {
+            label = "BT_SELECT_3";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&out OUT_BLE>,
+                  <&bt BT_SEL 3>;
+        };
+    };
+#else
+    macros {
+        bt_0: bt_0 {
+            label = "BT_0";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&out OUT_BLE>,
+                  <&bt BT_SEL 0>;
+        };
+        bt_1: bt_1 {
+            label = "BT_1";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&out OUT_BLE>,
+                  <&bt BT_SEL 1>;
+        };
+        bt_2: bt_2 {
+            label = "BT_2";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&out OUT_BLE>,
+                  <&bt BT_SEL 2>;
+        };
+        bt_3: bt_3 {
+            label = "BT_3";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&out OUT_BLE>,
+                  <&bt BT_SEL 3>;
+        };
+    };
+#endif
+};
+
+/ {
+    behaviors {
+        magic: magic {
+            compatible = "zmk,behavior-hold-tap";
+            label = "MAGIC_HOLD_TAP";
+            #binding-cells = <2>;
+            flavor = "tap-preferred";
+            tapping-term-ms = <200>;
+            bindings = <&mo>, <&rgb_ug_status_macro>;
+        };
+    };
+};
+
+
+/* Custom Defined Behaviors */
+/ {
+behaviors {
+    sk_fast: sk_fast {
+        compatible = "zmk,behavior-sticky-key";
+        #binding-cells = <1>;
+        bindings = <&kp>;
+        release-after-ms = <1000>;  // Maximum time, but quick-release overrides this
+        quick-release;
+        ignore-modifiers;
+        lazy;  // ADD THIS - releases immediately on next key press
+    };
+};
+
+behaviors {
+    sk_fast_ctrl: sk_fast_ctrl {
+        compatible = "zmk,behavior-sticky-key";
+        #binding-cells = <1>;
+        bindings = <&kp>;
+        release-after-ms = <1000>;
+        quick-release;
+        ignore-modifiers;
+        lazy;
+    };
+};
+};
+
+/* Automatically generated macro definitions */
+/ {
+    macros {
+
+        // This switches tmux widows
+        tmux_switches: tmux_switches {
+            label = "&TMUX_SWITCHES";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(N)>
+                , <&none>
+                , <&kp LC(P)>;
+        };
+
+        // This will navigate to next agent on herdr
+        next_agent: next_agent {
+            label = "&NEXT_AGENT";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(N)>
+                , <&kp V>
+                , <&kp FSLH>;
+        };
+
+        // This will enter tmux visual mode just like vim , so i can yank text.
+        tmux_visual_mode: tmux_visual_mode {
+            label = "&TMUX_VISUAL_MODE";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(N)>
+                , <&kp V>;
+        };
+
+        // This will open new tmux tab
+        tmux_new_tab: tmux_new_tab {
+            label = "&TMUX_NEW_TAB";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(N)>
+                , <&kp C>;
+        };
+
+        // This will list all of tmux windows and sessions
+        list_tmux_sessions: list_tmux_sessions {
+            label = "&LIST_TMUX_SESSIONS";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(N)>
+                , <&kp J>;
+        };
+
+        // using flutter-tools
+        flutter_watch: flutter_watch {
+            label = "&FLUTTER_WATCH";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp F>
+                , <&kp L>
+                , <&kp U>
+                , <&kp T>
+                , <&kp T>
+                , <&kp E>
+                , <&kp R>
+                , <&kp MINUS>
+                , <&kp W>
+                , <&kp A>
+                , <&kp T>
+                , <&kp C>
+                , <&kp H>;
+        };
+
+        // This will run flutter build
+        vs_flutter_run: vs_flutter_run {
+            label = "&VS_FLUTTER_RUN";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LS(N6)>
+                , <&kp F5>;
+        };
+
+        // This will find the next ( in nvim
+        Find_Open_Parenthesis: Find_Open_Parenthesis {
+            label = "&FIND_OPEN_PARENTHESIS";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp F>
+                , <&kp LS(N9)>;
+        };
+
+        // This will find the next open Parenthesis in nvim.
+        Find_open_brackets: Find_open_brackets {
+            label = "&FIND_OPEN_BRACKETS";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp F>
+                , <&kp LS(LBKT)>;
+        };
+
+        // This will find the next open square bracket in nvim.
+        Find_open_square_bracket: Find_open_square_bracket {
+            label = "&FIND_OPEN_SQUARE_BRACKET";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp F>
+                , <&kp LBKT>;
+        };
+
+        mac_pass: mac_pass {
+            label = "&MAC_PASS";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&none>;  /* REDACTED: add real value in a local-only build */
+        };
+
+        dev_pass: dev_pass {
+            label = "&DEV_PASS";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&none>;  /* REDACTED: add real value in a local-only build */
+        };
+
+        migbyte_pass: migbyte_pass {
+            label = "&MIGBYTE_PASS";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&none>;  /* REDACTED: add real value in a local-only build */
+        };
+
+        zero_phone_number: zero_phone_number {
+            label = "&ZERO_PHONE_NUMBER";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&none>;  /* REDACTED: add real value in a local-only build */
+        };
+
+        without_zero_phone_number: without_zero_phone_number {
+            label = "&WITHOUT_ZERO_PHONE_NUMBER";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&none>;  /* REDACTED: add real value in a local-only build */
+        };
+
+        migdaddylast: migdaddylast {
+            label = "&MIGDADDYLAST";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&none>;  /* REDACTED: add real value in a local-only build */
+        };
+
+        // it scrolls the screen so that the line your cursor is currently on moves to the top of the window.
+        ZT_camera_control_command: ZT_camera_control_command {
+            label = "&ZT_CAMERA_CONTROL_COMMAND";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp Z>
+                , <&kp T>;
+        };
+
+        // Moves the current line (where your cursor is) to the center of the screen... When you find a search result (n) or jump to a line, and you want to see the context both above and below it.
+        ZZ_Center_The_View: ZZ_Center_The_View {
+            label = "&ZZ_CENTER_THE_VIEW";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp Z>
+                , <&kp Z>;
+        };
+
+        //  Moves the current line to the very bottom of the window.
+        ZB_Bottom_Of_The_Window: ZB_Bottom_Of_The_Window {
+            label = "&ZB_BOTTOM_OF_THE_WINDOW";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp Z>
+                , <&kp B>;
+        };
+
+        // Close one tab on the left on surfingkey extension
+        Close_one_tab_left_in_surfing: Close_one_tab_left_in_surfing {
+            label = "&CLOSE_ONE_TAB_LEFT_IN_SURFING";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp X>
+                , <&kp T>;
+        };
+
+        // Close one tab on the right in surfingkey extension
+        Close_one_tab_right_in_surfing: Close_one_tab_right_in_surfing {
+            label = "&CLOSE_ONE_TAB_RIGHT_IN_SURFING";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp X>
+                , <&kp LS(T)>;
+        };
+
+        // This duplicate the current tab on the background on surfingkey extension.
+        Duplicate_current_tab_on_Bg: Duplicate_current_tab_on_Bg {
+            label = "&DUPLICATE_CURRENT_TAB_ON_BG";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp Y>
+                , <&kp LS(T)>;
+        };
+
+        // This will edit the current url in vim overlay tab in surfingkey extension
+        Edit_url_in_nvim: Edit_url_in_nvim {
+            label = "&EDIT_URL_IN_NVIM";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp SEMI>
+                , <&kp LS(U)>;
+        };
+
+        // This will show hints images for you to download
+        Download_images_in_surfingkey: Download_images_in_surfingkey {
+            label = "&DOWNLOAD_IMAGES_IN_SURFINGKEY";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp SEMI>
+                , <&kp D>
+                , <&kp I>;
+        };
+
+        // This will close playing tap in surfingkey extension, which was gxp
+        Close_playing_tab: Close_playing_tab {
+            label = "&CLOSE_PLAYING_TAB";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp X>
+                , <&kp P>;
+        };
+
+        // This will open a link / page in a new tab on surfingkey which was gf
+        Open_link_in_new_tab: Open_link_in_new_tab {
+            label = "&OPEN_LINK_IN_NEW_TAB";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp F>;
+        };
+
+        // This will open multiaple links in new tabs in surfingkey.. which was cf
+        Open_multiaple_links: Open_multiaple_links {
+            label = "&OPEN_MULTIAPLE_LINKS";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp C>
+                , <&kp F>;
+        };
+
+        // This will open a link in a active new tab in surfingkey ..which was af
+        Open_a_link_in_new_tab: Open_a_link_in_new_tab {
+            label = "&OPEN_A_LINK_IN_NEW_TAB";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp A>
+                , <&kp F>;
+        };
+
+        // This wil duplicate the current tab in the same tab in surfingkey ... which as yt
+        duplicate_current_tab: duplicate_current_tab {
+            label = "&DUPLICATE_CURRENT_TAB";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp Y>
+                , <&kp T>;
+        };
+
+        // in most pages. like youtube , these is multiple scroll target , this will change scroll target in surfingkey, which was cs
+        Change_scroll_target: Change_scroll_target {
+            label = "&CHANGE_SCROLL_TARGET";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp C>
+                , <&kp S>;
+        };
+
+        // This will rest the scroll target to the Main Target in surfingkey, which was cS.
+        Rest_scroll_target: Rest_scroll_target {
+            label = "&REST_SCROLL_TARGET";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp C>
+                , <&kp LS(S)>;
+        };
+
+        // This will display hints to scrollable elements in surfingkey which was ;fs.
+        Display_hints_to_scrollable: Display_hints_to_scrollable {
+            label = "&DISPLAY_HINTS_TO_SCROLLABLE";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp SEMI>
+                , <&kp F>
+                , <&kp S>;
+        };
+
+        // This will bring an overlay to choose a tab from in surfingkey, which was gt.
+        Choose_a_tab: Choose_a_tab {
+            label = "&CHOOSE_A_TAB";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp T>;
+        };
+
+        // cib (Change Inner Block) deletes everything inside a pair of parentheses and immediately switches you to Insert Mode. It is the most common shortcut for rewriting function arguments or if-statement conditions.
+        Circle_Bracket_Quick_Change: Circle_Bracket_Quick_Change {
+            label = "&CIRCLE_BRACKET_QUICK_CHANGE";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp C>
+                , <&kp I>
+                , <&kp B>;
+        };
+
+        // yib (Yank Inner Block) copies all text between parentheses to your clipboard (register) without changing the file. It is a non-destructive command used to duplicate parameters or data
+        The_Inner_Bracket_Yank: The_Inner_Bracket_Yank {
+            label = "&THE_INNER_BRACKET_YANK";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp Y>
+                , <&kp I>
+                , <&kp B>;
+        };
+
+        // dib (Delete Inner Block) erases the content inside parentheses but keeps you in Normal.
+        The_Inner_Bracket_Deletion: The_Inner_Bracket_Deletion {
+            label = "&THE_INNER_BRACKET_DELETION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp D>
+                , <&kp I>
+                , <&kp B>;
+        };
+
+        // vib (Visual Inner Block) highlights the text inside the parentheses. It provides a visual preview of what you are targeting before you apply a change or deletion.
+        //
+        Inner_Bracket_Visual_Selection: Inner_Bracket_Visual_Selection {
+            label = "&INNER_BRACKET_VISUAL_SELECTION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp V>
+                , <&kp I>
+                , <&kp B>;
+        };
+
+        // ciB (Change Inner Big-block) deletes everything inside a pair of curly braces { } and automatically puts you into Insert Mode. It is the fastest way to wipe out the logic inside a function or a class method to start fresh.
+        The_Curly_Brace_Quick_Change: The_Curly_Brace_Quick_Change {
+            label = "&THE_CURLY_BRACE_QUICK_CHANGE";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp C>
+                , <&kp I>
+                , <&kp LS(B)>;
+        };
+
+        // yiB (Yank Inner Big-block) copies the entire content located inside curly braces without moving the cursor or changing the text. This is used to "grab" the body of a function or a JSON object to paste it elsewhere.
+        The_Curly_Brace_Yank: The_Curly_Brace_Yank {
+            label = "&THE_CURLY_BRACE_YANK";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp Y>
+                , <&kp I>
+                , <&kp LS(B)>;
+        };
+
+        // diB (Delete Inner Big-block) erases all text inside the { } but keeps you in Normal Mode. Unlike ciB, it does not prepare you to type; it simply clears the space.
+        The_Curly_Brace_Deletion: The_Curly_Brace_Deletion {
+            label = "&THE_CURLY_BRACE_DELETION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp D>
+                , <&kp I>
+                , <&kp LS(B)>;
+        };
+
+        // viB (Visual Inner Big-block) highlights all the code contained within a pair of curly braces. Because code blocks can be hundreds of lines long, this provides a clear visual map of exactly what is being selected before you act on it.
+        Curly_Brace_Visual_Selection: Curly_Brace_Visual_Selection {
+            label = "&CURLY_BRACE_VISUAL_SELECTION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp V>
+                , <&kp I>
+                , <&kp LS(B)>;
+        };
+
+        // The f] command jumps the cursor forward to the first closing square bracket ] on the current line.
+        Forward_Square_Bracket_Find: Forward_Square_Bracket_Find {
+            label = "&FORWARD_SQUARE_BRACKET_FIND";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp F>
+                , <&kp RBKT>;
+        };
+
+        // The f} command scans the current line from left to right and jumps the cursor directly onto the first closing curly brace } it finds.
+        Forward_Curly_Brace_Find: Forward_Curly_Brace_Find {
+            label = "&FORWARD_CURLY_BRACE_FIND";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp F>
+                , <&kp LS(RBKT)>;
+        };
+
+        // The f) command instantly moves your cursor forward to the next closing parenthesis ) on the same line.
+        The_Forward_Parenthesis_Find: The_Forward_Parenthesis_Find {
+            label = "&THE_FORWARD_PARENTHESIS_FIND";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp F>
+                , <&kp LS(N0)>;
+        };
+
+        // ci] (Change Inner Bracket) deletes every character between a pair of square brackets and immediately drops you into Insert Mode. It is the fastest way to replace the entire contents of an array or a list without manually deleting items.
+        Square_Bracket_Quick_Change: Square_Bracket_Quick_Change {
+            label = "&SQUARE_BRACKET_QUICK_CHANGE";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp C>
+                , <&kp I>
+                , <&kp RBKT>;
+        };
+
+        // yi] (Yank Inner Bracket) copies the content inside the square brackets to your clipboard (register). This allows you to duplicate array data or list elements to use elsewhere in your code without changing the original line.
+        The_Square_Bracket_Yank: The_Square_Bracket_Yank {
+            label = "&THE_SQUARE_BRACKET_YANK";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp Y>
+                , <&kp I>
+                , <&kp RBKT>;
+        };
+
+        // di] (Delete Inner Bracket) clears all text between the [ ] but keeps you in Normal Mode. Unlike the "change" command, it doesn't prepare you to type; it simply "guts" the bracketed content.
+        The_Square_Bracket_Deletion: The_Square_Bracket_Deletion {
+            label = "&THE_SQUARE_BRACKET_DELETION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp D>
+                , <&kp I>
+                , <&kp RBKT>;
+        };
+
+        // vi] (Visual Inner Bracket) highlights all text inside the square brackets. This gives you a clear visual confirmation of what is selected, which is particularly helpful if the array spans multiple lines.
+        The_Square_Bracket_Visual_Sele: The_Square_Bracket_Visual_Sele {
+            label = "&THE_SQUARE_BRACKET_VISUAL_SELE";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp V>
+                , <&kp I>
+                , <&kp RBKT>;
+        };
+
+        // ci" (Change Inner Double-quote) deletes all text between a pair of double quotes " and automatically switches you to Insert Mode.
+        Double_Quote_Quick_Change: Double_Quote_Quick_Change {
+            label = "&DOUBLE_QUOTE_QUICK_CHANGE";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp C>
+                , <&kp I>
+                , <&kp LS(SQT)>;
+        };
+
+        // ci' (Change Inner Single-quote) performs the exact same action as the double-quote version but targets ' '.
+        Single_Quote_Quick_Change: Single_Quote_Quick_Change {
+            label = "&SINGLE_QUOTE_QUICK_CHANGE";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp C>
+                , <&kp I>
+                , <&kp SQT>;
+        };
+
+        // yi' (Yank Inner Single-quote) copies the text inside single quotes without deleting it. It is a "read-only" operation that saves the string content to your register.
+        Single_Quote_Yank: Single_Quote_Yank {
+            label = "&SINGLE_QUOTE_YANK";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp Y>
+                , <&kp I>
+                , <&kp SQT>;
+        };
+
+        // yi" (Yank Inner Double-quote) copies the text located inside double quotes.
+        The_Double_Quote_Yank: The_Double_Quote_Yank {
+            label = "&THE_DOUBLE_QUOTE_YANK";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp Y>
+                , <&kp I>
+                , <&kp LS(SQT)>;
+        };
+
+        // vi' (Visual Inner Single-quote) highlights all text between two single quotes. It "snaps" the selection to the boundaries of the string, allowing you to visually confirm the content before you perform an action.
+        Single_Quote_Visual_Selection: Single_Quote_Visual_Selection {
+            label = "&SINGLE_QUOTE_VISUAL_SELECTION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp V>
+                , <&kp I>
+                , <&kp SQT>;
+        };
+
+        // vi" (Visual Inner Double-quote) functions exactly like the single-quote version but targets double quotes. In many languages, double quotes represent interpolated strings, and this command helps you select those complex expressions quickly.
+        Double_Quote_Visual_Selection: Double_Quote_Visual_Selection {
+            label = "&DOUBLE_QUOTE_VISUAL_SELECTION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp V>
+                , <&kp I>
+                , <&kp LS(SQT)>;
+        };
+
+        // di' (Delete Inner Single-quote) erases the text inside single quotes but leaves the quotes themselves intact. Crucially, it keeps you in Normal Mode rather than switching you to Insert
+        Single_Quote_Deletion: Single_Quote_Deletion {
+            label = "&SINGLE_QUOTE_DELETION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp D>
+                , <&kp I>
+                , <&kp SQT>;
+        };
+
+        // di" (Delete Inner Double-quote) removes the content within double quotes. Like all "delete" commands in Neovim, the removed text is saved to your register (clipboard), effectively acting as a "cut" operation.
+        Double_Quote_Deletion: Double_Quote_Deletion {
+            label = "&DOUBLE_QUOTE_DELETION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp D>
+                , <&kp I>
+                , <&kp LS(SQT)>;
+        };
+
+        // [d is a navigation command used to jump the cursor to the previous diagnostic (error, warning, or hint) in your current file. In Flutter development, where widget trees can become massive, this is the fastest way to find why your code isn't compiling without scrolling manually.
+        The_Previous_Diagnostic_Jump: The_Previous_Diagnostic_Jump {
+            label = "&THE_PREVIOUS_DIAGNOSTIC_JUMP";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LBKT>
+                , <&kp D>;
+        };
+
+        // ]d is a navigation shortcut that jumps your cursor to the next diagnostic (error, warning, or hint) further down in your file. It is the primary way to "audit" your code after a big refactor in Flutter. Instead of hunting for red lines with your mouse, you let the LSP snap your cursor exactly where the logic is broken.
+        The_Next_Diagnostic_Jump: The_Next_Diagnostic_Jump {
+            label = "&THE_NEXT_DIAGNOSTIC_JUMP";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp RBKT>
+                , <&kp D>;
+        };
+
+        // [E (Capital E) is a navigation command used to jump the cursor to the previous Error-level diagnostic in your file. While [d stops at everything (warnings, hints, and notes), [E ignores the small stuff and takes you only to the "breaking" code that is preventing your Flutter app from compiling or running.
+        Previous_Critical_Error_Jump: Previous_Critical_Error_Jump {
+            label = "&PREVIOUS_CRITICAL_ERROR_JUMP";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LBKT>
+                , <&kp E>;
+        };
+
+        // ]E (Capital E) is a navigation command that jumps your cursor to the next Error-level diagnostic in your file. While the lowercase ]d stops at every minor warning or styling hint, ]E specifically targets "breaking" errors—the ones that cause red squiggly lines and prevent your code from compiling.
+        Next_Critical_Error_Jump: Next_Critical_Error_Jump {
+            label = "&NEXT_CRITICAL_ERROR_JUMP";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp RBKT>
+                , <&kp E>;
+        };
+
+        // dap (Delete Around Paragraph) deletes the entire paragraph your cursor is currently in, along with the blank line following it. In programming, Neovim defines a "paragraph" as a block of text separated by empty lines.
+        Paragraph_Eraser: Paragraph_Eraser {
+            label = "&PARAGRAPH_ERASER";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp D>
+                , <&kp A>
+                , <&kp P>;
+        };
+
+        // The :Files command opens a floating fuzzy-search window that lists every file in your current project. As you type, the list narrows down instantly based on "fuzzy" matching, meaning you only need to type a few letters of the filename to find it.
+        Global_File_Finder: Global_File_Finder {
+            label = "&GLOBAL_FILE_FINDER";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp F>
+                , <&kp Z>
+                , <&kp F>;
+        };
+
+        // The <leader>sv command splits your current window vertically, placing a new window to the right.
+        The_Vertical_Split: The_Vertical_Split {
+            label = "&THE_VERTICAL_SPLIT";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp SPACE>
+                , <&kp S>
+                , <&kp V>;
+        };
+
+        // The <leader>sh command splits your window horizontally, placing a new window below your current one.
+        The_Horizontal_Split: The_Horizontal_Split {
+            label = "&THE_HORIZONTAL_SPLIT";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp SPACE>
+                , <&kp S>
+                , <&kp H>;
+        };
+
+        // The <leader>sx command instantly closes the split window that your cursor is currently in.
+        The_Split_Close: The_Split_Close {
+            label = "&THE_SPLIT_CLOSE";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp SPACE>
+                , <&kp S>
+                , <&kp X>;
+        };
+
+        // Deletes the current word and enters Insert Mode. This is likely the most used shortcut in Neovim for renaming variables or fixing typos.(ciw)
+        Word_Quick_Change: Word_Quick_Change {
+            label = "&WORD_QUICK_CHANGE";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp C>
+                , <&kp I>
+                , <&kp W>;
+        };
+
+        // Deletes the current word and stays in Normal Mode. Great for removing an unnecessary argument or variable.(diw)
+        Word_Deletion: Word_Deletion {
+            label = "&WORD_DELETION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp D>
+                , <&kp I>
+                , <&kp W>;
+        };
+
+        // Highlights the current word. Useful for seeing exactly what a substitution or search command will target.(viw)
+        Word_Visual_Selection: Word_Visual_Selection {
+            label = "&WORD_VISUAL_SELECTION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp V>
+                , <&kp I>
+                , <&kp W>;
+        };
+
+        // Copies the current word to your register without moving the cursor or changing the text.(yiw)
+        Word_Yank: Word_Yank {
+            label = "&WORD_YANK";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp Y>
+                , <&kp I>
+                , <&kp W>;
+        };
+
+        // Copies the word plus the space following it. Useful when you plan to paste the word into a list where spacing matters.(yaw)
+        Whole_Word_Yank: Whole_Word_Yank {
+            label = "&WHOLE_WORD_YANK";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp Y>
+                , <&kp A>
+                , <&kp W>;
+        };
+
+        // Deletes the word and the trailing space, then enters Insert Mode.(caw)
+        Whole_Word_Change: Whole_Word_Change {
+            label = "&WHOLE_WORD_CHANGE";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp C>
+                , <&kp A>
+                , <&kp W>;
+        };
+
+        // This is a motion-based command. It deletes from your current cursor position to the start of the next word. If your cursor is in the middle of a word, it only deletes the second half.(dw)
+        Delete_to_Next_Word: Delete_to_Next_Word {
+            label = "&DELETE_TO_NEXT_WORD";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp D>
+                , <&kp W>;
+        };
+
+        // Deletes the entire sentence and enters Insert Mode. Neovim automatically finds the start and end of the sentence for you.(cis)
+        Sentence_Quick_Change: Sentence_Quick_Change {
+            label = "&SENTENCE_QUICK_CHANGE";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp C>
+                , <&kp I>
+                , <&kp S>;
+        };
+
+        // Deletes the current sentence and remains in Normal Mode.(dis)
+        Sentence_Deletion: Sentence_Deletion {
+            label = "&SENTENCE_DELETION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp D>
+                , <&kp I>
+                , <&kp S>;
+        };
+
+        // Highlights the entire sentence. Excellent for re-reading a specific thought in a documentation file or comment block.(vis)
+        Sentence_Visual_Selection: Sentence_Visual_Selection {
+            label = "&SENTENCE_VISUAL_SELECTION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp V>
+                , <&kp I>
+                , <&kp S>;
+        };
+
+        // Copies the current sentence to your clipboard.(yis)
+        Sentence_Yank: Sentence_Yank {
+            label = "&SENTENCE_YANK";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp Y>
+                , <&kp I>
+                , <&kp S>;
+        };
+
+        // Deletes the entire block of code/text and enters Insert Mode.(cip)
+        Paragraph_Quick_Change: Paragraph_Quick_Change {
+            label = "&PARAGRAPH_QUICK_CHANGE";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp C>
+                , <&kp I>
+                , <&kp P>;
+        };
+
+        // Deletes the content of the paragraph but keeps the empty lines surrounding it.(dip)
+        Paragraph_Deletion: Paragraph_Deletion {
+            label = "&PARAGRAPH_DELETION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp D>
+                , <&kp I>
+                , <&kp P>;
+        };
+
+        // Highlights the entire block. This is the fastest way to select a whole function or a CSS rule.(vip)
+        Paragraph_Visual_Selection: Paragraph_Visual_Selection {
+            label = "&PARAGRAPH_VISUAL_SELECTION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp V>
+                , <&kp I>
+                , <&kp P>;
+        };
+
+        // Copies the entire block of text to your register. Very useful for duplicating logic blocks in Flutter or Laravel.(yip)
+        Paragraph_Yank: Paragraph_Yank {
+            label = "&PARAGRAPH_YANK";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp Y>
+                , <&kp I>
+                , <&kp P>;
+        };
+
+        // The `` command returns your cursor to the exact position (line and column) where it was before your last "jump" (like a search, a long-distance move, or jumping to a definition).
+        Context_Teleport: Context_Teleport {
+            label = "&CONTEXT_TELEPORT";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp GRAVE>
+                , <&kp GRAVE>;
+        };
+
+        // daw (Delete Around Word) deletes the current word and the single space that follows it. It is designed to keep your sentence structure clean; by removing the trailing space, the surrounding words snap together perfectly without leaving a double space behind.
+        Complete_Word_Deletion: Complete_Word_Deletion {
+            label = "&COMPLETE_WORD_DELETION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp D>
+                , <&kp A>
+                , <&kp W>;
+        };
+
+        // vaw (Visual Around Word) highlights the current word and the space immediately after it.
+        Complete_Word_Visual_Selection: Complete_Word_Visual_Selection {
+            label = "&COMPLETE_WORD_VISUAL_SELECTION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp V>
+                , <&kp A>
+                , <&kp W>;
+        };
+
+        // db (Delete Backwards) deletes from your current cursor position back to the beginning of the current word.
+        Backward_Delete_to_Word: Backward_Delete_to_Word {
+            label = "&BACKWARD_DELETE_TO_WORD";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp D>
+                , <&kp B>;
+        };
+
+        // Reselects the last visual selection you had.
+        gv_reselect_last_visual: gv_reselect_last_visual {
+            label = "&GV_RESELECT_LAST_VISUAL";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp V>;
+        };
+
+        // guw is a sequence that converts all characters from your cursor position to the end of the current word into lowercase.(guw)
+        Word_Lowercaser: Word_Lowercaser {
+            label = "&WORD_LOWERCASER";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp U>
+                , <&kp W>;
+        };
+
+        // gUiw is a more powerful version of the uppercase command that targets the entire word regardless of where your cursor is currently sitting within it.
+        Inner_Word_Uppercaser: Inner_Word_Uppercaser {
+            label = "&INNER_WORD_UPPERCASER";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp LS(U)>
+                , <&kp I>
+                , <&kp W>;
+        };
+
+        // gUU is a shorthand command that instantly converts every character on the current line to uppercase.
+        Total_Line_Uppercaser: Total_Line_Uppercaser {
+            label = "&TOTAL_LINE_UPPERCASER";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp LS(U)>
+                , <&kp LS(U)>;
+        };
+
+        // gUip is a powerful command sequence that converts an entire block of text (a paragraph) to uppercase. Neovim defines a paragraph as any block of text bounded by empty lines.
+        Paragraph_Uppercaser: Paragraph_Uppercaser {
+            label = "&PARAGRAPH_UPPERCASER";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp LS(U)>
+                , <&kp I>
+                , <&kp P>;
+        };
+
+        // gUw converts all characters to uppercase starting from the cursor’s current position to the end of the current word.
+        Forward_Word_Uppercaser: Forward_Word_Uppercaser {
+            label = "&FORWARD_WORD_UPPERCASER";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp LS(U)>
+                , <&kp W>;
+        };
+
+        // gUb converts all characters to uppercase starting from the current cursor position back to the beginning of the word.
+        Backward_Word_Uppercaser: Backward_Word_Uppercaser {
+            label = "&BACKWARD_WORD_UPPERCASER";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp LS(U)>
+                , <&kp B>;
+        };
+
+        // guu is a shorthand command that instantly converts every character on the current line to lowercase.
+        Total_Line_Lowercaser: Total_Line_Lowercaser {
+            label = "&TOTAL_LINE_LOWERCASER";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp U>
+                , <&kp U>;
+        };
+
+        // The '] command (closing bracket followed by a single quote) jumps your cursor to the last character of the most recently changed or yanked text.
+        The_Next_Change_Jump: The_Next_Change_Jump {
+            label = "&THE_NEXT_CHANGE_JUMP";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp SQT>
+                , <&kp RBKT>;
+        };
+
+        // If you use a backtick instead of a single quote (`]), Neovim jumps to the exact column and character where the last change ended.
+        The_Precise_Change_End: The_Precise_Change_End {
+            label = "&THE_PRECISE_CHANGE_END";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp GRAVE>
+                , <&kp RBKT>;
+        };
+
+        // The '[ command (opening bracket preceded by a single quote) jumps your cursor to the first non-blank character of the line where your last change or yank began.
+        The_Last_Change_Start: The_Last_Change_Start {
+            label = "&THE_LAST_CHANGE_START";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp SQT>
+                , <&kp LBKT>;
+        };
+
+        // Using a backtick (`[) instead of a single quote makes the jump character-wise.
+        The_Precise_Change_Origin: The_Precise_Change_Origin {
+            label = "&THE_PRECISE_CHANGE_ORIGIN";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp GRAVE>
+                , <&kp LBKT>;
+        };
+
+        // g; (Go-to-Semicolon) moves your cursor back to the location of your previous change.
+        The_Previous_Edit_Jump: The_Previous_Edit_Jump {
+            label = "&THE_PREVIOUS_EDIT_JUMP";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp SEMI>;
+        };
+
+        // g, (Go-to-Comma) moves your cursor forward to the next (newer) change in the change list.
+        The_Newer_Edit_Jump: The_Newer_Edit_Jump {
+            label = "&THE_NEWER_EDIT_JUMP";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp COMMA>;
+        };
+
+        // The '. command (single quote followed by a period) jumps your cursor to the line where the last change was made.
+        The_Insert_Exit_Jump: The_Insert_Exit_Jump {
+            label = "&THE_INSERT_EXIT_JUMP";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp SQT>
+                , <&kp DOT>;
+        };
+
+        // The ^ (Caret) mark is even more specific. It tracks the exact column and line where your cursor was located the last time you exited Insert Mode.
+        The_Precise_Insert_Point: The_Precise_Insert_Point {
+            label = "&THE_PRECISE_INSERT_POINT";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp GRAVE>
+                , <&kp LS(N6)>;
+        };
+
+        // The '< command (single quote followed by the left angle bracket) jumps your cursor to the beginning of the last visual selection.
+        The_Visual_Start_Jump: The_Visual_Start_Jump {
+            label = "&THE_VISUAL_START_JUMP";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp SQT>
+                , <&kp LS(COMMA)>;
+        };
+
+        // The '> command (single quote followed by the right angle bracket) jumps your cursor to the end of the last visual selection.
+        The_Visual_End_Jump: The_Visual_End_Jump {
+            label = "&THE_VISUAL_END_JUMP";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp SQT>
+                , <&kp LS(DOT)>;
+        };
+
+        Terminal_narrator: Terminal_narrator {
+            label = "&TERMINAL_NARRATOR";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp FSLH>
+                , <&kp U>
+                , <&kp S>
+                , <&kp R>
+                , <&kp FSLH>
+                , <&kp B>
+                , <&kp I>
+                , <&kp N>
+                , <&kp FSLH>
+                , <&kp S>
+                , <&kp A>
+                , <&kp Y>
+                , <&kp SPACE>
+                , <&kp LS(SQT)>
+                , <&kp LS(SQT)>
+                , <&kp LEFT>;
+        };
+
+        Terminal_voices9: Terminal_voices9 {
+            label = "&TERMINAL_VOICES9";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp FSLH>
+                , <&kp U>
+                , <&kp S>
+                , <&kp R>
+                , <&kp FSLH>
+                , <&kp B>
+                , <&kp I>
+                , <&kp N>
+                , <&kp FSLH>
+                , <&kp S>
+                , <&kp A>
+                , <&kp Y>
+                , <&kp SPACE>
+                , <&kp MINUS>
+                , <&kp V>
+                , <&kp SPACE>
+                , <&kp SQT>
+                , <&kp LS(FSLH)>
+                , <&kp SQT>;
+        };
+
+        Terminal_voices_lists: Terminal_voices_lists {
+            label = "&TERMINAL_VOICES_LISTS";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp FSLH>
+                , <&kp U>
+                , <&kp S>
+                , <&kp R>
+                , <&kp FSLH>
+                , <&kp B>
+                , <&kp I>
+                , <&kp N>
+                , <&kp FSLH>
+                , <&kp S>
+                , <&kp A>
+                , <&kp Y>
+                , <&kp SPACE>
+                , <&kp MINUS>
+                , <&kp V>
+                , <&kp SPACE>
+                , <&kp LS(SQT)>
+                , <&kp V>
+                , <&kp O>
+                , <&kp I>
+                , <&kp C>
+                , <&kp E>
+                , <&kp SPACE>
+                , <&kp N>
+                , <&kp A>
+                , <&kp M>
+                , <&kp E>
+                , <&kp LS(SQT)>
+                , <&kp SPACE>
+                , <&kp LS(SQT)>
+                , <&kp LS(SQT)>
+                , <&kp LEFT>;
+        };
+
+        // This will switch models ,github or chatgpt
+        Open_code_switch_model: Open_code_switch_model {
+            label = "&OPEN_CODE_SWITCH_MODEL";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(P)>
+                , <&kp M>;
+        };
+
+        // This will jump to any message on the prompt .... the previous ones
+        Open_code_jump_to_msg: Open_code_jump_to_msg {
+            label = "&OPEN_CODE_JUMP_TO_MSG";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(X)>
+                , <&kp G>;
+        };
+
+        // This will undo the last message on the prompt ...
+        Open_code_Undo_previous_msgs: Open_code_Undo_previous_msgs {
+            label = "&OPEN_CODE_UNDO_PREVIOUS_MSGS";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(X)>
+                , <&kp U>;
+        };
+
+        // This will hide side bar.
+        Open_code_hide_side_bar: Open_code_hide_side_bar {
+            label = "&OPEN_CODE_HIDE_SIDE_BAR";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(X)>
+                , <&kp B>;
+        };
+
+        // This can disable or enable code concealment in open code.
+        Open_code_concealment: Open_code_concealment {
+            label = "&OPEN_CODE_CONCEALMENT";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(X)>
+                , <&kp H>;
+        };
+
+        // This will open a new session for a prompt
+        Open_code_new_session: Open_code_new_session {
+            label = "&OPEN_CODE_NEW_SESSION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(X)>
+                , <&kp N>;
+        };
+
+        // This will switch prompt sessions
+        Open_code_switch_session: Open_code_switch_session {
+            label = "&OPEN_CODE_SWITCH_SESSION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(X)>
+                , <&kp L>;
+        };
+
+        //  This will copy the last assistant message
+        Open_code_copy_last_message: Open_code_copy_last_message {
+            label = "&OPEN_CODE_COPY_LAST_MESSAGE";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(X)>
+                , <&kp Y>;
+        };
+
+        // This will be compact session , as in it will explain what's the session / prompt was about and summary
+        Open_code_compact_session: Open_code_compact_session {
+            label = "&OPEN_CODE_COMPACT_SESSION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(X)>
+                , <&kp C>;
+        };
+
+        // This will export session transcript in a md file .
+        Open_code_export_session: Open_code_export_session {
+            label = "&OPEN_CODE_EXPORT_SESSION";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(X)>
+                , <&kp X>;
+        };
+
+        // This will change open code theme
+        Open_code_theme: Open_code_theme {
+            label = "&OPEN_CODE_THEME";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(X)>
+                , <&kp T>;
+        };
+
+        // this a plugin in tmux that is created by dev-ops channel
+        tmux_pop_window: tmux_pop_window {
+            label = "&TMUX_POP_WINDOW";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(N)>
+                , <&kp P>;
+        };
+
+        tmux_horizental_split: tmux_horizental_split {
+            label = "&TMUX_HORIZENTAL_SPLIT";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(N)>
+                , <&kp LS(MINUS)>;
+        };
+
+        tmux_vertical_split: tmux_vertical_split {
+            label = "&TMUX_VERTICAL_SPLIT";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(N)>
+                , <&kp LS(BSLH)>;
+        };
+
+        // This will go to currently playing tap
+        surfingkey_playing_tab: surfingkey_playing_tab {
+            label = "&SURFINGKEY_PLAYING_TAB";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp P>;
+        };
+
+        // this will download the best mp3 quality for the file using yt-dlp package
+        youtube_mp3_best_quailty: youtube_mp3_best_quailty {
+            label = "&YOUTUBE_MP3_BEST_QUAILTY";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp Y>
+                , <&kp T>
+                , <&kp MINUS>
+                , <&kp D>
+                , <&kp L>
+                , <&kp P>
+                , <&kp SPACE>
+                , <&kp MINUS>
+                , <&kp X>
+                , <&kp SPACE>
+                , <&kp MINUS>
+                , <&kp MINUS>
+                , <&kp A>
+                , <&kp U>
+                , <&kp D>
+                , <&kp I>
+                , <&kp O>
+                , <&kp MINUS>
+                , <&kp F>
+                , <&kp O>
+                , <&kp R>
+                , <&kp M>
+                , <&kp A>
+                , <&kp T>
+                , <&kp SPACE>
+                , <&kp M>
+                , <&kp P>
+                , <&kp N3>
+                , <&kp SPACE>
+                , <&kp MINUS>
+                , <&kp MINUS>
+                , <&kp A>
+                , <&kp U>
+                , <&kp D>
+                , <&kp I>
+                , <&kp O>
+                , <&kp MINUS>
+                , <&kp Q>
+                , <&kp U>
+                , <&kp A>
+                , <&kp L>
+                , <&kp I>
+                , <&kp T>
+                , <&kp Y>
+                , <&kp SPACE>
+                , <&kp N0>
+                , <&kp SPACE>
+                , <&kp LS(SQT)>
+                , <&kp LS(SQT)>
+                , <&kp LEFT>;
+        };
+
+        Make_youtue_full_screen: Make_youtue_full_screen {
+            label = "&MAKE_YOUTUE_FULL_SCREEN";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp G>
+                , <&kp LS(F)>;
+        };
+
+        // This will open nvm editor for the current tmux window session , so i can copy / yank text.
+        tmux_nvim_search_word: tmux_nvim_search_word {
+            label = "&TMUX_NVIM_SEARCH_WORD";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(N)>
+                , <&kp Y>;
+        };
+
+        // (redacted)
+        apple_password: apple_password {
+            label = "&APPLE_PASSWORD";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&none>;  /* REDACTED: add real value in a local-only build */
+        };
+
+        // This will navigate to the previous agent on herdr
+        previous_agent: previous_agent {
+            label = "&PREVIOUS_AGENT";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(N)>
+                , <&kp R>;
+        };
+
+        herdr_last_pane: herdr_last_pane {
+            label = "&HERDR_LAST_PANE";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(N)>
+                , <&kp B>;
+        };
+
+        herdr_toggle_side_bar: herdr_toggle_side_bar {
+            label = "&HERDR_TOGGLE_SIDE_BAR";
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kp LC(N)>
+                , <&kp LSHFT>
+                , <&kp S>;
+        };
+    };
+};
+
+/* Automatically generated behavior definitions */
+/ {
+    behaviors {
+
+        // Layer tap dance behaviors
+
+        ZMK_TD_LAYER(td_LAYER_Numbers, 1)
+
+        // this when pressed it presses enter when hold, it goes to vim layer
+        vim_enter: vim_enter {
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            tapping-term-ms = <200>;
+            bindings = <&mo>, <&kp>;
+            hold-trigger-key-positions = <>;
+        };
+    };
+};
+
+/* Automatically generated combos definitions */
+/ {
+    combos {
+        compatible = "zmk,combos";
+
+        combo_Another_symbol_layer {
+            timeout-ms = <25>;
+            key-positions = <POS_LH_T2 POS_RH_T3 POS_RH_C3R4 POS_RH_C3R2>;
+            bindings = <&sl LAYER_simbols_layer>;
+        };
+
+        // This will show all the symbol layers
+        combo_symbol_layer {
+            timeout-ms = <25>;
+            key-positions = <POS_RH_T2 POS_LH_T3 POS_LH_C1R3 POS_LH_C3R3>;
+            bindings = <&sl LAYER_Symbols>;
+        };
+
+        // ThIs will press the alt key until another key is pressed
+        combo_Alt_key {
+            timeout-ms = <30>;
+            key-positions = <POS_RH_T2 POS_RH_C2R3>;
+            bindings = <&sk LALT>;
+        };
+
+        combo_Last_used_tap_session {
+            timeout-ms = <30>;
+            key-positions = <POS_LH_T3 POS_LH_C4R3>;
+            bindings = <&kp LC(N6)>;
+        };
+
+        combo_combo_faster_shift {
+            timeout-ms = <80>;
+            key-positions = <POS_RH_T2 POS_LH_T3>;
+            bindings = <&sk_fast LSHIFT>;
+        };
+
+        combo_surfingkey_layer {
+            key-positions = <POS_LH_T2 POS_RH_T2>;
+            bindings = <&mo LAYER_Surfingkey>;
+        };
+
+        combo_combo_fast_ctrl {
+            timeout-ms = <30>;
+            key-positions = <POS_RH_T2 POS_RH_C3R3>;
+            bindings = <&sk LCTRL>;
+        };
+
+        // This will pressed gui key until another key is pressed
+        combo_GUI_Key {
+            timeout-ms = <30>;
+            key-positions = <POS_RH_C3R3 POS_RH_C2R3>;
+            bindings = <&sk LGUI>;
+        };
+
+        // This is combo for toggling numbers layers
+        combo_Toggle_numbers_layers {
+            timeout-ms = <33>;
+            key-positions = <POS_RH_C4R3 POS_RH_C3R3>;
+            bindings = <&to LAYER_Numbers>;
+        };
+
+        // This will toggle something like capslock
+        combo_CAPSWORD {
+            timeout-ms = <30>;
+            key-positions = <POS_LH_C4R3 POS_LH_C3R3>;
+            bindings = <&caps_word>;
+        };
+
+        // This is combo for toggling numbers layers
+        combo_kitty_sessions {
+            timeout-ms = <50>;
+            key-positions = <POS_LH_T3 POS_RH_T3>;
+            bindings = <&mo LAYER_kitty_workspaces_sessions>;
+        };
+
+        combo_password_manager {
+            timeout-ms = <45>;
+            key-positions = <POS_LH_T2 POS_LH_C4R3>;
+            bindings = <&sl LAYER_passwords>;
+        };
+    };
+};
+
+
+/* ---- Keymap (order defines layer index) ---- */
+/ {
+    keymap {
+        compatible = "zmk,keymap";
+
+        // ---- BASE: Colemak-DH ("kuru"), Go60 rows R2/R3/R4 + thumbs ----
+        // Dropped from the Go60 base: number row, and inner row `grave DEL BSPC | RCTRL [ ]`.
+        layer_kuru {
+            bindings = <
+   &kp TAB   &kp Q   &kp W   &kp F   &kp P   &kp B          &kp J   &kp L      &kp U     &kp Y   &kp SEMI          &kp BSLH
+     &kp Q   &kp A   &kp R   &kp S   &kp T   &kp G          &kp M   &kp N      &kp E     &kp I      &kp O           &kp SQT
+ &to LAYER_kuru  &kp Z   &kp X   &kp C   &kp D   &kp V      &kp K   &kp H  &kp COMMA   &kp DOT   &kp FSLH  &td_LAYER_Numbers
+                    &kp LSHFT  &kp LA(BSPC)  &mo LAYER_All_layers    &vim_enter LAYER_Vim RET  &kp SPACE  &mo LAYER_Numbers
+            >;
+        };
+
+        // ---- Numbers (also holds RGB + BT controls), Go60 rows R2/R3/R4 + thumbs ----
+        layer_Numbers {
+            bindings = <
+ &none   &trans  &none   &kp N5   &kp END  &kp PG_UP        &kp KP_N7   &kp N6   &kp KP_N6  &none  &kp KP_SLASH  &none
+ &none   &kp N1          &kp N2   &kp N3    &kp N4  &kp PG_DN           &kp N7   &kp N7      &kp N8          &kp N9        &kp N0  &none
+ &none    &bt_1       &kp LC(X)    &none     &none     &none            &none    &none   &kp COMMA        &kp DOT         &bt_3  &none
+                        &mo LAYER_All_layers   &trans   &to LAYER_kuru        &to LAYER_kuru   &trans   &kp KP_N0
+            >;
+        };
+
+        // index 2 — TODO: port from go60.keymap layer_All_layers
+        layer_All_layers {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 3 — TODO: port from go60.keymap layer_Vim
+        layer_Vim {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 4 — TODO: port from go60.keymap layer_Window_Manager
+        layer_Window_Manager {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 5 — TODO: port from go60.keymap layer_Raycast
+        layer_Raycast {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 6 — TODO: port from go60.keymap layer_Arrow_Movements
+        layer_Arrow_Movements {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 7 — TODO: port from go60.keymap layer_alt_movement
+        layer_alt_movement {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 8 — TODO: port from go60.keymap layer_gui_movements
+        layer_gui_movements {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 9 — TODO: port from go60.keymap layer_Shift_alt_movements
+        layer_Shift_alt_movements {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 10 — TODO: port from go60.keymap layer_coding
+        layer_coding {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 11 — TODO: port from go60.keymap layer_mouesless
+        layer_mouesless {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 12 — TODO: port from go60.keymap layer_Vim_cursor
+        layer_Vim_cursor {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 13 — TODO: port from go60.keymap layer_programming
+        layer_programming {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 14 — TODO: port from go60.keymap layer_passwords
+        layer_passwords {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 15 — TODO: port from go60.keymap layer_Surfingkey
+        layer_Surfingkey {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 16 — TODO: port from go60.keymap layer_Vim_brackets
+        layer_Vim_brackets {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 17 — TODO: port from go60.keymap layer_Vim_squarely_brackets
+        layer_Vim_squarely_brackets {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 18 — TODO: port from go60.keymap layer_Symbols
+        layer_Symbols {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 19 — TODO: port from go60.keymap layer_simbols_layer
+        layer_simbols_layer {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 20 — TODO: port from go60.keymap layer_neovim
+        layer_neovim {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 21 — TODO: port from go60.keymap layer_vimuim
+        layer_vimuim {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 22 — TODO: port from go60.keymap layer_splits_focus
+        layer_splits_focus {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 23 — TODO: port from go60.keymap layer_vim_words
+        layer_vim_words {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 24 — TODO: port from go60.keymap layer_vim_sentences
+        layer_vim_sentences {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 25 — TODO: port from go60.keymap layer_Tmux_Ghostty
+        layer_Tmux_Ghostty {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 26 — TODO: port from go60.keymap layer_Vim_changes
+        layer_Vim_changes {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 27 — TODO: port from go60.keymap layer_Open_code
+        layer_Open_code {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 28 — TODO: port from go60.keymap layer_kitty_workspaces_sessions
+        layer_kitty_workspaces_sessions {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 29 — TODO: port from go60.keymap layer_Raycast_Apps
+        layer_Raycast_Apps {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 30 — TODO: port from go60.keymap layer_Workspaces_layouts
+        layer_Workspaces_layouts {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        // index 31 — TODO: port from go60.keymap layer_workspaces_focus
+        layer_workspaces_focus {
+            bindings = <
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+ &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+    };
+};

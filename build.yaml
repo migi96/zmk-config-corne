@@ -1,0 +1,29 @@
+# Corne-only build matrix (nice!nano v2), keymap ported from a Go60 layout.
+# Based on github.com/mctechnology17/zmk-config. Flash the pair that matches
+# your displays; if you have no display, tell the author to add a display-off target.
+---
+include:
+  # --- Corne + nice!view (ePaper) ---
+  - board: nice_nano_v2
+    shield: corne_left nice_view_adapter nice_epaper
+    cmake-args: -DCONFIG_ZMK_KEYBOARD_NAME=\"Corne_View\"
+    artifact-name: nice_corne_left_view
+    snippet: studio-rpc-usb-uart
+  - board: nice_nano_v2
+    shield: corne_right nice_view_adapter nice_epaper
+    artifact-name: nice_corne_right_view
+
+  # --- Corne + nice!OLED ---
+  - board: nice_nano_v2
+    shield: corne_left nice_oled
+    cmake-args: -DCONFIG_ZMK_KEYBOARD_NAME=\"Corne_Oled\"
+    artifact-name: nice_corne_left_oled
+    snippet: studio-rpc-usb-uart
+  - board: nice_nano_v2
+    shield: corne_right nice_oled
+    artifact-name: nice_corne_right_oled
+
+  # --- Pairing reset (flash if halves won't connect) ---
+  - board: nice_nano_v2
+    shield: settings_reset
+    artifact-name: nice_settings_reset
